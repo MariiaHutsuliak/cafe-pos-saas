@@ -5,6 +5,10 @@ class Settings(BaseSettings):
     database_url: str = "postgresql://postgres:postgres@localhost:5432/cafe_pos"
     app_name: str = "Cloud POS для мережі кав'ярень"
 
+    secret_key: str = "change-me-to-a-random-long-string"
+    algorithm: str = "HS256"
+    access_token_expire_minutes: int = 60
+
     class Config:
         env_file = ".env"
 
