@@ -7,12 +7,16 @@ from cafe_pos.config import settings
 from cafe_pos.database import engine, Base
 from cafe_pos import models  # noqa: F401
 from cafe_pos.api import auth, users, products
+from cafe_pos.api import analytics, cafes, sales
 
 app = FastAPI(title=settings.app_name)
 
 app.include_router(auth.router)
 app.include_router(users.router)
 app.include_router(products.router)
+app.include_router(analytics.router)
+app.include_router(cafes.router)
+app.include_router(sales.router)
 
 app.mount(
     "/app",
