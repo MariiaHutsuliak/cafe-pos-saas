@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from cafe_pos.database import get_db
@@ -13,7 +14,7 @@ router = APIRouter(prefix="/products", tags=["products"])
 @router.get("/", response_model=list[ProductRead])
 def list_products(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),  # будь-яка роль, аби залогінений
+    current_user: User = Depends(get_current_user),
 ):
     return db.query(Product).all()
 
@@ -22,10 +23,47 @@ def list_products(
 def create_product(
     product_in: ProductCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_role(UserRole.admin)),  # тільки admin
+    current_user: User = Depends(require_role(UserRole.admin)),
 ):
     product = Product(**product_in.model_dump())
     db.add(product)
     db.commit()
     db.refresh(product)
     return product
+
+
+@router.put("/{product_id}", response_model=ProductRead)
+def update_product(
+    product_id: int,
+    product_in: ProductCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role(UserRole.admin)),
+):
+    product = db.get(Product, product_id)
+    if not product:
+        raise HTTPException(status_code=404, detail="Товар не знайдено")
+    product.name = product_in.name
+    product.category = product_in.category
+    product.price = product_in.price
+    db.commit()
+    db.refresh(product)
+    return product
+
+
+@router.delete("/{product_id}", status_code=204)
+def delete_product(
+    product_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role(UserRole.admin)),
+):
+    product = db.get(Product, product_id)
+    if not product:
+        raise HTTPException(status_code=404, detail="Товар не знайдено")
+    try:
+        db.delete(product)
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(
+            status_code=400, detail="Не можна видалити — товар уже має продажі"
+        )
