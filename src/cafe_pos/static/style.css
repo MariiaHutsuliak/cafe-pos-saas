@@ -1,0 +1,375 @@
+:root {
+  --series-1: #2a78d6;
+  --series-2: #eb6834;
+  --series-3: #1baf7a;
+  --series-4: #eda100;
+  --series-5: #e34948;
+
+  --surface: #ffffff;
+  --page-bg: #f6f7f9;
+  --text-primary: #14161a;
+  --text-secondary: #5b6270;
+  --text-muted: #9aa1ad;
+
+  --border: #e6e8ec;
+  --border-strong: #d3d7dd;
+
+  --good: #0ca30c;
+  --danger: #d03b3b;
+  --danger-bg: #fdecea;
+  --danger-border: #f6c8c4;
+
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --shadow-sm: 0 1px 2px rgba(20, 22, 26, 0.05), 0 1px 1px rgba(20, 22, 26, 0.03);
+  --shadow-md: 0 4px 14px rgba(20, 22, 26, 0.08);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  background: var(--page-bg);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ---------- Layout ---------- */
+
+.container {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 32px 24px 64px;
+}
+
+.wrap {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 32px 24px 64px;
+}
+
+h1 {
+  font-size: 28px;
+  font-weight: 700;
+  margin: 0 0 24px;
+  letter-spacing: -0.02em;
+}
+
+h2 {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0 0 16px;
+  color: var(--text-primary);
+}
+
+/* ---------- Top navigation ---------- */
+
+.topnav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 24px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.nav-links a {
+  text-decoration: none;
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 500;
+  padding: 8px 14px;
+  border-radius: 8px;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.nav-links a:hover {
+  background: var(--page-bg);
+  color: var(--text-primary);
+}
+
+.nav-links a.active {
+  color: var(--series-1);
+  background: rgba(42, 120, 214, 0.1);
+}
+
+.nav-auth {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.nav-auth a {
+  color: var(--series-1);
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 14px;
+}
+
+/* ---------- Badge ---------- */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(42, 120, 214, 0.12);
+  color: var(--series-1);
+  letter-spacing: 0.01em;
+}
+
+/* ---------- Cards ---------- */
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  padding: 24px;
+  margin-bottom: 24px;
+}
+
+/* ---------- KPI tiles (dashboard) ---------- */
+
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.tile {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  padding: 18px 20px;
+}
+
+.tile .tile-label {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+}
+
+.tile .tile-value {
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+/* ---------- Forms ---------- */
+
+form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 16px;
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+input {
+  font-family: inherit;
+  font-size: 14px;
+  padding: 9px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text-primary);
+  min-width: 160px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+input:focus {
+  outline: none;
+  border-color: var(--series-1);
+  box-shadow: 0 0 0 3px rgba(42, 120, 214, 0.15);
+}
+
+/* ---------- Buttons ---------- */
+
+button {
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 9px 16px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.05s ease;
+}
+
+button:active {
+  transform: scale(0.98);
+}
+
+button.primary {
+  background: var(--series-1);
+  color: #ffffff;
+}
+
+button.primary:hover {
+  background: #2166ba;
+}
+
+button.secondary {
+  background: var(--surface);
+  color: var(--text-primary);
+  border-color: var(--border-strong);
+}
+
+button.secondary:hover {
+  background: var(--page-bg);
+}
+
+button.danger {
+  background: var(--danger-bg);
+  color: var(--danger);
+  border-color: var(--danger-border);
+}
+
+button.danger:hover {
+  background: #fbdcd9;
+}
+
+/* default (unclassed) buttons behave like .primary */
+button:not(.primary):not(.secondary):not(.danger) {
+  background: var(--series-1);
+  color: #ffffff;
+}
+
+/* ---------- Tables ---------- */
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+thead th {
+  text-align: left;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  padding: 0 12px 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+tbody td {
+  padding: 14px 12px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-primary);
+}
+
+tbody tr:last-child td {
+  border-bottom: none;
+}
+
+tbody tr:hover {
+  background: var(--page-bg);
+}
+
+tbody td:last-child {
+  text-align: right;
+  white-space: nowrap;
+}
+
+tbody td:last-child button {
+  margin-left: 8px;
+}
+
+/* ---------- Error message ---------- */
+
+.error,
+#error-msg {
+  background: var(--danger-bg);
+  color: var(--danger);
+  border: 1px solid var(--danger-border);
+  border-radius: var(--radius-md);
+  padding: 12px 16px;
+  font-size: 14px;
+  margin-bottom: 20px;
+}
+
+.auth-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  padding: 32px 24px;
+}
+
+.auth-page h1 {
+  margin: 0;
+}
+
+.auth-page .card {
+  width: 100%;
+  max-width: 420px;
+}
+
+.form-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.form-stack input {
+  width: 100%;
+}
+
+.form-stack button {
+  margin-top: 4px;
+}
+
+select {
+  font-family: inherit;
+  font-size: 14px;
+  padding: 9px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text-primary);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+select:focus {
+  outline: none;
+  border-color: var(--series-1);
+  box-shadow: 0 0 0 3px rgba(42, 120, 214, 0.15);
+}
+
+.form-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
