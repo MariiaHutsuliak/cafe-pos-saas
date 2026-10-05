@@ -1,10 +1,146 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="uk">
 <head>
-  <meta charset="UTF-8">
-  <title>$Title$</title>
+<meta charset="UTF-8">
+<title>Cafe POS — продажі</title>
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
-$END$
+<div class="wrap">
+  <h1>Продажі</h1>
+  <div id="error-msg" class="error" style="display:none;"></div>
+
+  <div class="card">
+    <h2>Оформити продаж (тільки admin)</h2>
+
+    <div class="form-row">
+      <select id="s-cafe"></select>
+    </div>
+
+    <div class="form-row">
+      <select id="s-product"></select>
+      <input id="s-qty" type="number" value="1" min="1" style="width:80px">
+      <button class="secondary" onclick="addToCart()">+ Додати товар</button>
+    </div>
+
+    <table id="cart-table" style="margin-top:16px;">
+      <thead><tr><th>Товар</th><th>К-сть</th><th>Сума</th><th></th></tr></thead>
+      <tbody id="cart-tbody"></tbody>
+    </table>
+    <div id="cart-empty" style="color: var(--text-muted); font-size: 14px; padding: 8px 0;">Кошик порожній — додай товари вище</div>
+    <div id="cart-total" style="font-weight:700; margin: 12px 0; display:none;"></div>
+
+    <button class="primary" onclick="createSale()">Пробити чек</button>
+  </div>
+
+  <div class="card">
+    <h2>Останні продажі</h2>
+    <table id="sales-table">
+      <thead><tr><th>ID</th><th>Кав'ярня</th><th>Товари</th><th>Сума</th><th>Час</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</div>
+
+<script src="app.js"></script>
+<script>
+renderNav('sales.html');
+
+let products = [];
+let cart = []; // { product_id, name, price, quantity }
+
+async function loadOptions() {
+  const cafes = await apiGet('/cafes/');
+  products = await apiGet('/products/');
+  document.getElementById('s-cafe').innerHTML = cafes.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+  document.getElementById('s-product').innerHTML = products.map(p => `<option value="${p.id}">${p.name} (${p.price} грн)</option>`).join('');
+}
+
+function addToCart() {
+  hideError();
+  const productId = parseInt(document.getElementById('s-product').value);
+  const qty = parseInt(document.getElementById('s-qty').value);
+  if (!productId || !qty || qty < 1) { showError('Вкажи товар і коректну кількість'); return; }
+
+  const product = products.find(p => p.id === productId);
+  const existing = cart.find(item => item.product_id === productId);
+  if (existing) {
+    existing.quantity += qty;
+  } else {
+    cart.push({ product_id: productId, name: product.name, price: product.price, quantity: qty });
+  }
+  document.getElementById('s-qty').value = 1;
+  renderCart();
+}
+
+function removeFromCart(productId) {
+  cart = cart.filter(item => item.product_id !== productId);
+  renderCart();
+}
+
+function renderCart() {
+  const tbody = document.getElementById('cart-tbody');
+  const table = document.getElementById('cart-table');
+  const empty = document.getElementById('cart-empty');
+  const totalEl = document.getElementById('cart-total');
+
+  if (cart.length === 0) {
+    table.style.display = 'none';
+    empty.style.display = 'block';
+    totalEl.style.display = 'none';
+    return;
+  }
+
+  table.style.display = 'table';
+  empty.style.display = 'none';
+
+  tbody.innerHTML = cart.map(item => `
+    <tr>
+      <td>${item.name}</td>
+      <td>${item.quantity}</td>
+      <td>${(item.price * item.quantity).toFixed(2)} грн</td>
+      <td><button class="danger" onclick="removeFromCart(${item.product_id})">Прибрати</button></td>
+    </tr>
+  `).join('');
+
+  const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  totalEl.style.display = 'block';
+  totalEl.textContent = `Разом: ${total.toFixed(2)} грн`;
+}
+
+async function loadSales() {
+  try {
+    const sales = await apiGet('/sales/?limit=20');
+    const tbody = document.querySelector('#sales-table tbody');
+    tbody.innerHTML = sales.map(s => {
+      const items = s.items.map(i => `${i.product} ×${i.quantity}`).join(', ');
+      const time = s.created_at ? new Date(s.created_at).toLocaleString('uk-UA') : '—';
+      return `<tr><td>${s.id}</td><td>${s.cafe}</td><td>${items}</td><td>${s.total_price} грн</td><td>${time}</td></tr>`;
+    }).join('');
+  } catch (e) { showError(e.message); }
+}
+
+async function createSale() {
+  hideError();
+  if (cart.length === 0) { showError('Додай хоча б один товар у кошик'); return; }
+  try {
+    await apiPost('/sales/', {
+      cafe_id: parseInt(document.getElementById('s-cafe').value),
+      items: cart.map(item => ({ product_id: item.product_id, quantity: item.quantity })),
+    });
+    cart = [];
+    renderCart();
+    await loadSales();
+  } catch (e) { showError(e.message); }
+}
+
+(async () => {
+  try {
+    await loadOptions();
+    renderCart();
+    await loadSales();
+  } catch (e) { showError(e.message); }
+})();
+</script>
 </body>
 </html>

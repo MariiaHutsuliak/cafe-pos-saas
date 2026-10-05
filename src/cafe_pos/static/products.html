@@ -1,10 +1,149 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="uk">
 <head>
   <meta charset="UTF-8">
-  <title>$Title$</title>
+  <title>Товари — Cafe POS</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-$END$
+  <main class="container">
+    <h1>Товари</h1>
+    <div id="error-msg" class="error" style="display:none;"></div>
+
+    <section id="add-product-section" class="card" style="display:none;">
+      <h2>Додати товар</h2>
+      <form id="add-product-form">
+        <label>Назва <input type="text" id="new-name" required></label>
+        <label>Категорія <input type="text" id="new-category" required></label>
+        <label>Ціна <input type="number" step="0.01" id="new-price" required></label>
+        <button type="submit" class="primary">Додати</button>
+      </form>
+    </section>
+
+    <section class="card">
+      <table id="products-table">
+        <thead>
+          <tr>
+            <th>Назва</th>
+            <th>Категорія</th>
+            <th>Ціна</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="products-tbody"></tbody>
+      </table>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+  <script>
+    let products = [];
+    let editingId = null;
+
+    function actionsCell(product) {
+      if (!isAdmin()) return '';
+      if (editingId === product.id) {
+        return `
+          <button class="secondary" onclick="saveEdit(${product.id})">Зберегти</button>
+          <button class="secondary" onclick="cancelEdit()">Скасувати</button>
+        `;
+      }
+      return `
+        <button class="secondary" onclick="startEdit(${product.id})">Редагувати</button>
+        <button class="danger" onclick="deleteProduct(${product.id})">Видалити</button>
+      `;
+    }
+
+    function renderTable() {
+      const tbody = document.getElementById('products-tbody');
+      tbody.innerHTML = products.map(p => {
+        if (editingId === p.id) {
+          return `
+            <tr>
+              <td><input type="text" id="edit-name-${p.id}" value="${p.name}"></td>
+              <td><input type="text" id="edit-category-${p.id}" value="${p.category}"></td>
+              <td><input type="number" step="0.01" id="edit-price-${p.id}" value="${p.price}"></td>
+              <td>${actionsCell(p)}</td>
+            </tr>
+          `;
+        }
+        return `
+          <tr>
+            <td>${p.name}</td>
+            <td>${p.category}</td>
+            <td>${Number(p.price).toFixed(2)} грн</td>
+            <td>${actionsCell(p)}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    async function loadProducts() {
+      try {
+        products = await apiGet('/products/');
+        renderTable();
+      } catch (e) {
+        showError(e.message);
+      }
+    }
+
+    function startEdit(id) {
+      editingId = id;
+      renderTable();
+    }
+
+    function cancelEdit() {
+      editingId = null;
+      renderTable();
+    }
+
+    async function saveEdit(id) {
+      hideError();
+      const name = document.getElementById(`edit-name-${id}`).value;
+      const category = document.getElementById(`edit-category-${id}`).value;
+      const price = parseFloat(document.getElementById(`edit-price-${id}`).value);
+      try {
+        await apiPut(`/products/${id}`, { name, category, price });
+        editingId = null;
+        await loadProducts();
+      } catch (e) {
+        showError(e.message);
+      }
+    }
+
+    async function deleteProduct(id) {
+      if (!confirm('Видалити цей товар?')) return;
+      hideError();
+      try {
+        await apiDelete(`/products/${id}`);
+        await loadProducts();
+      } catch (e) {
+        showError(e.message);
+      }
+    }
+
+    document.getElementById('add-product-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      hideError();
+      const name = document.getElementById('new-name').value;
+      const category = document.getElementById('new-category').value;
+      const price = parseFloat(document.getElementById('new-price').value);
+      try {
+        await apiPost('/products/', { name, category, price });
+        document.getElementById('add-product-form').reset();
+        await loadProducts();
+      } catch (e) {
+        showError(e.message);
+      }
+    });
+
+    if (!isLoggedIn()) {
+      window.location.href = 'index.html';
+    } else {
+      renderNav('products');
+      document.getElementById('add-product-section').style.display = isAdmin() ? 'block' : 'none';
+      loadProducts();
+    }
+  </script>
 </body>
 </html>

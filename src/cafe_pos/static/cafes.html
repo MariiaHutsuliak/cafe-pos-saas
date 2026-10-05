@@ -1,10 +1,149 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="uk">
 <head>
   <meta charset="UTF-8">
-  <title>$Title$</title>
+  <title>Кав'ярні — Cafe POS</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-$END$
+  <main class="container">
+    <h1>Кав'ярні</h1>
+    <div id="error-msg" class="error" style="display:none;"></div>
+
+    <section id="add-cafe-section" class="card" style="display:none;">
+      <h2>Додати кав'ярню</h2>
+      <form id="add-cafe-form">
+        <label>Назва <input type="text" id="new-name" required></label>
+        <label>Адреса <input type="text" id="new-address" required></label>
+        <label>Часовий пояс <input type="text" id="new-timezone" value="Europe/Kyiv" required></label>
+        <button type="submit" class="primary">Додати</button>
+      </form>
+    </section>
+
+    <section class="card">
+      <table id="cafes-table">
+        <thead>
+          <tr>
+            <th>Назва</th>
+            <th>Адреса</th>
+            <th>Часовий пояс</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="cafes-tbody"></tbody>
+      </table>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+  <script>
+    let cafes = [];
+    let editingId = null;
+
+    function actionsCell(cafe) {
+      if (!isAdmin()) return '';
+      if (editingId === cafe.id) {
+        return `
+          <button class="secondary" onclick="saveEdit(${cafe.id})">Зберегти</button>
+          <button class="secondary" onclick="cancelEdit()">Скасувати</button>
+        `;
+      }
+      return `
+        <button class="secondary" onclick="startEdit(${cafe.id})">Редагувати</button>
+        <button class="danger" onclick="deleteCafe(${cafe.id})">Видалити</button>
+      `;
+    }
+
+    function renderTable() {
+      const tbody = document.getElementById('cafes-tbody');
+      tbody.innerHTML = cafes.map(c => {
+        if (editingId === c.id) {
+          return `
+            <tr>
+              <td><input type="text" id="edit-name-${c.id}" value="${c.name}"></td>
+              <td><input type="text" id="edit-address-${c.id}" value="${c.address}"></td>
+              <td><input type="text" id="edit-timezone-${c.id}" value="${c.timezone}"></td>
+              <td>${actionsCell(c)}</td>
+            </tr>
+          `;
+        }
+        return `
+          <tr>
+            <td>${c.name}</td>
+            <td>${c.address}</td>
+            <td>${c.timezone}</td>
+            <td>${actionsCell(c)}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    async function loadCafes() {
+      try {
+        cafes = await apiGet('/cafes/');
+        renderTable();
+      } catch (e) {
+        showError(e.message);
+      }
+    }
+
+    function startEdit(id) {
+      editingId = id;
+      renderTable();
+    }
+
+    function cancelEdit() {
+      editingId = null;
+      renderTable();
+    }
+
+    async function saveEdit(id) {
+      hideError();
+      const name = document.getElementById(`edit-name-${id}`).value;
+      const address = document.getElementById(`edit-address-${id}`).value;
+      const timezone = document.getElementById(`edit-timezone-${id}`).value;
+      try {
+        await apiPut(`/cafes/${id}`, { name, address, timezone });
+        editingId = null;
+        await loadCafes();
+      } catch (e) {
+        showError(e.message);
+      }
+    }
+
+    async function deleteCafe(id) {
+      if (!confirm("Видалити цю кав'ярню?")) return;
+      hideError();
+      try {
+        await apiDelete(`/cafes/${id}`);
+        await loadCafes();
+      } catch (e) {
+        showError(e.message);
+      }
+    }
+
+    document.getElementById('add-cafe-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      hideError();
+      const name = document.getElementById('new-name').value;
+      const address = document.getElementById('new-address').value;
+      const timezone = document.getElementById('new-timezone').value;
+      try {
+        await apiPost('/cafes/', { name, address, timezone });
+        document.getElementById('add-cafe-form').reset();
+        await loadCafes();
+      } catch (e) {
+        showError(e.message);
+      }
+    });
+
+    if (!isLoggedIn()) {
+      window.location.href = 'index.html';
+    } else {
+      renderNav('cafes');
+      document.getElementById('add-cafe-section').style.display = isAdmin() ? 'block' : 'none';
+      loadCafes();
+    }
+  </script>
 </body>
 </html>

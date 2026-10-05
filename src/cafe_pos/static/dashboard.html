@@ -1,10 +1,112 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="uk">
 <head>
-  <meta charset="UTF-8">
-  <title>$Title$</title>
-</head>
+<meta charset="UTF-8">
+<title>Cafe POS — дашборд</title>
+<link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <body>
-$END$
+<div class="wrap">
+  <h1>Дашборд</h1>
+
+  <div id="error-msg" class="error" style="display:none;"></div>
+
+  <div class="tiles">
+    <div class="tile"><div class="label">Виручка сьогодні</div><div class="value" id="tile-revenue">—</div></div>
+    <div class="tile"><div class="label">Замовлень сьогодні</div><div class="value" id="tile-orders">—</div></div>
+    <div class="tile"><div class="label">Середній чек</div><div class="value" id="tile-avg">—</div></div>
+    <div class="tile"><div class="label">Кав'ярень у мережі</div><div class="value" id="tile-cafes">—</div></div>
+  </div>
+
+  <div class="card">
+    <h2>Виручка по днях (останні 14 днів)</h2>
+    <canvas id="revenue-chart"></canvas>
+  </div>
+
+  <div class="card">
+    <h2>Топ-5 товарів за виручкою</h2>
+    <canvas id="top-products-chart"></canvas>
+  </div>
+
+  <div class="card">
+    <h2>Виручка по кав'ярнях</h2>
+    <canvas id="by-cafe-chart"></canvas>
+  </div>
+</div>
+
+<script src="app.js"></script>
+<script>
+renderNav('dashboard.html');
+
+function formatMoney(n) {
+  return n.toLocaleString('uk-UA', { maximumFractionDigits: 0 }) + ' грн';
+}
+
+async function load() {
+  try {
+    const summary = await apiGet('/analytics/summary');
+    document.getElementById('tile-revenue').textContent = formatMoney(summary.today_revenue);
+    document.getElementById('tile-orders').textContent = summary.today_orders;
+    document.getElementById('tile-avg').textContent = formatMoney(summary.avg_check);
+    document.getElementById('tile-cafes').textContent = summary.total_cafes;
+
+    const revenueByDay = await apiGet('/analytics/revenue-by-day?days=14');
+    new Chart(document.getElementById('revenue-chart'), {
+      type: 'line',
+      data: {
+        labels: revenueByDay.map(d => d.date.slice(5)),
+        datasets: [{
+          data: revenueByDay.map(d => d.revenue),
+          borderColor: '#2a78d6', backgroundColor: 'rgba(42,120,214,0.10)',
+          borderWidth: 2, pointRadius: 4, pointBackgroundColor: '#2a78d6', fill: true, tension: 0.25,
+        }]
+      },
+      options: {
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { grid: { display: false }, ticks: { color: '#898781', font: { size: 11 } } },
+          y: { grid: { color: '#e1e0d9' }, ticks: { color: '#898781', font: { size: 11 } }, beginAtZero: true }
+        }
+      }
+    });
+
+    const topProducts = await apiGet('/analytics/top-products?limit=5');
+    new Chart(document.getElementById('top-products-chart'), {
+      type: 'bar',
+      data: {
+        labels: topProducts.map(d => d.name),
+        datasets: [{ data: topProducts.map(d => d.revenue), backgroundColor: '#2a78d6', borderRadius: 4, maxBarThickness: 40 }]
+      },
+      options: {
+        indexAxis: 'y',
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { grid: { color: '#e1e0d9' }, ticks: { color: '#898781', font: { size: 11 } }, beginAtZero: true },
+          y: { grid: { display: false }, ticks: { color: '#0b0b0b', font: { size: 12 } } }
+        }
+      }
+    });
+
+    const byCafe = await apiGet('/analytics/by-cafe');
+    new Chart(document.getElementById('by-cafe-chart'), {
+      type: 'bar',
+      data: {
+        labels: byCafe.map(d => d.name),
+        datasets: [{ data: byCafe.map(d => d.revenue), backgroundColor: '#eb6834', borderRadius: 4, maxBarThickness: 50 }]
+      },
+      options: {
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { grid: { display: false }, ticks: { color: '#898781', font: { size: 11 } } },
+          y: { grid: { color: '#e1e0d9' }, ticks: { color: '#898781', font: { size: 11 } }, beginAtZero: true }
+        }
+      }
+    });
+  } catch (e) {
+    showError(e.message + ' — переконайся, що залогінена адміном.');
+  }
+}
+load();
+</script>
 </body>
 </html>
