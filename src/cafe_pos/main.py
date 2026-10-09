@@ -1,15 +1,27 @@
-from fastapi import FastAPI
-from fastapi.staticfiles import StaticFiles
+import logging
 from pathlib import Path
+
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
 
-from cafe_pos.config import settings
-from cafe_pos.database import engine, Base
 from cafe_pos import models  # noqa: F401
-from cafe_pos.api import auth, users, products
-from cafe_pos.api import analytics, cafes, sales
+from cafe_pos.api import analytics, auth, cafes, products, sales, users
+from cafe_pos.config import settings
+from cafe_pos.database import Base, engine
 
-app = FastAPI(title=settings.app_name)
+logger = logging.getLogger("cafe_pos")
+
+# Документація (/docs, /redoc) і детальні сторінки помилок потрібні тільки
+# під час розробки. У production (DEBUG=false) вони вимкнені.
+app = FastAPI(
+    title=settings.app_name,
+    debug=settings.debug,
+    docs_url="/docs" if settings.debug else None,
+    redoc_url="/redoc" if settings.debug else None,
+    openapi_url="/openapi.json" if settings.debug else None,
+)
 
 app.include_router(auth.router)
 app.include_router(users.router)
@@ -23,6 +35,18 @@ app.mount(
     StaticFiles(directory=Path(__file__).parent / "static", html=True),
     name="static",
 )
+
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception):
+    # Повний стектрейс іде тільки в лог сервера.
+    logger.exception("Unhandled error on %s %s", request.method, request.url.path)
+    # Користувач бачить коротке повідомлення без внутрішніх деталей.
+    # Коли DEBUG=true, Starlette сам покаже детальну сторінку помилки.
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Внутрішня помилка сервера"},
+    )
 
 
 @app.on_event("startup")
@@ -41,11 +65,12 @@ def check_db_connection():
         with engine.connect() as connection:
             connection.execute(text("SELECT 1"))
         return {"database": "connected"}
-    except Exception as e:
-        return {"database": "error", "detail": str(e)}
+    except Exception:
+        logger.exception("Database health check failed")
+        return JSONResponse(status_code=503, content={"database": "error"})
 
 
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run("cafe_pos.main:app", host="127.0.0.1", port=8000, reload=True)
+    uvicorn.run("cafe_pos.main:app", host="127.0.0.1", port=8000, reload=settings.debug)
