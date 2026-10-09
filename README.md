@@ -93,7 +93,7 @@ graph TD
 ### Встановлення
 
 ```bash
-git clone https://github.com/MariiaHutsuliak/cafe-pos-saas.git
+git clone https://github.com/mariia-hutsuliak-labs/cafe-pos-saas.git
 cd cafe-pos-saas
 python -m venv venv
 source venv/bin/activate
