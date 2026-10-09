@@ -1,12 +1,17 @@
 import random
 from datetime import datetime, timedelta, timezone
 
+from cafe_pos.config import settings
 from cafe_pos.database import SessionLocal
 from cafe_pos.models.cafe import Cafe
 from cafe_pos.models.product import Product
 from cafe_pos.models.sale import Sale, SaleItem
 
-CAFES = ["Кав'ярня на Хрещатику", "Кав'ярня Поділ", "Кав'ярня Оболонь"]
+CAFES = [
+    ("Кав'ярня на Хрещатику", "вул. Хрещатик, 22"),
+    ("Кав'ярня Поділ", "вул. Сагайдачного, 10"),
+    ("Кав'ярня Оболонь", "просп. Оболонський, 1"),
+]
 DEMO_PRODUCTS = [
     ("Капучино", "Напій", 65),
     ("Лате", "Напій", 70),
@@ -14,6 +19,10 @@ DEMO_PRODUCTS = [
     ("Круасан", "Десерт", 55),
     ("Чізкейк", "Десерт", 85),
 ]
+
+if settings.app_env == "production":
+    print("Демо-дані можна створювати тільки в sandbox. У production це заборонено.")
+    raise SystemExit(1)
 
 db = SessionLocal()
 
@@ -31,8 +40,8 @@ if not products:
 
 cafes = db.query(Cafe).all()
 if not cafes:
-    for name in CAFES:
-        db.add(Cafe(name=name))
+    for name, address in CAFES:
+        db.add(Cafe(name=name, address=address))
     db.commit()
     cafes = db.query(Cafe).all()
 
