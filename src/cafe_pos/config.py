@@ -1,16 +1,31 @@
-from pydantic_settings import BaseSettings
+import os
+from pathlib import Path
+
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+BASE_DIR = Path(__file__).resolve().parents[2]
+
+# Яке середовище запущено: sandbox, production або test.
+# Якщо змінну не задано, беремо sandbox, щоб випадково не торкнутись робочої бази.
+APP_ENV = os.getenv("APP_ENV", "sandbox")
 
 
 class Settings(BaseSettings):
-    database_url: str = "postgresql://postgres:postgres@localhost:5432/cafe_pos"
+    app_env: str = APP_ENV
+    debug: bool = False
     app_name: str = "Cloud POS для мережі кав'ярень"
 
-    secret_key: str = "change-me-to-a-random-long-string"
+    # Ці два поля без значень за замовчуванням: без них застосунок не стартує.
+    database_url: str
+    secret_key: str
+
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 60
 
-    class Config:
-        env_file = ".env"
+    model_config = SettingsConfigDict(
+        env_file=BASE_DIR / f".env.{APP_ENV}",
+        extra="ignore",
+    )
 
 
 settings = Settings()
