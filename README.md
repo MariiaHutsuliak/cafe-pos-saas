@@ -82,6 +82,122 @@ graph TD
 
 7. **PostgreSQL** — основне реляційне сховище сутностей `Cafe`, `PosTerminal`, `Product`, `Sale` та `SaleItem`.
 
+## Запуск проєкту
+
+### Вимоги
+
+- Python 3.9 або новіший
+- PostgreSQL (на macOS: `brew install postgresql@18`)
+- Git
+
+### Встановлення
+
+```bash
+git clone https://github.com/MariiaHutsuliak/cafe-pos-saas.git
+cd cafe-pos-saas
+python -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+pre-commit install
+```
+
+### Середовища
+
+Застосунок працює в двох середовищах: **sandbox** (тестове, для розробки і демонстрації) та **production** (робоче). Яке з них запущене, визначає змінна оточення `APP_ENV`. Застосунок читає налаштування з файлу `.env.<APP_ENV>`. Якщо `APP_ENV` не задано, береться `sandbox`, щоб випадково не запустити робоче середовище.
+
+| | sandbox | production | тести (pytest) |
+|---|---|---|---|
+| Змінна `APP_ENV` | `sandbox` (за замовчуванням) | `production` | `test` |
+| Файл налаштувань | `.env.sandbox` | `.env.production` | не потрібен, значення задає `tests/conftest.py` |
+| База даних | `cafe_pos_sandbox` | `cafe_pos_production` | SQLite у пам'яті |
+| `DEBUG` | `true` | `false` | `false` |
+| Swagger (`/docs`) | доступний | вимкнений (404) | вимкнений |
+| Помилка 500 | детальний стектрейс | коротке повідомлення | коротке повідомлення |
+| Демо-дані | дозволені | заборонені | не використовуються |
+
+Паролі, ключі та рядки підключення до баз не зберігаються в коді. Файли `.env.sandbox` і `.env.production` не потрапляють у git (див. `.gitignore`). У репозиторії є тільки шаблон `.env.example` з вигаданими значеннями. Без змінних `DATABASE_URL` і `SECRET_KEY` застосунок не стартує.
+
+### Налаштування
+
+1. Створи дві окремі бази:
+
+```bash
+psql -U postgres -c "CREATE DATABASE cafe_pos_sandbox;"
+psql -U postgres -c "CREATE DATABASE cafe_pos_production;"
+```
+
+2. Створи файли налаштувань із шаблону:
+
+```bash
+cp .env.example .env.sandbox
+cp .env.example .env.production
+```
+
+3. Відкрий `.env.sandbox` і вкажи свій пароль PostgreSQL у `DATABASE_URL`. Для `SECRET_KEY` підстав випадковий рядок.
+
+4. Відкрий `.env.production` і зміни чотири рядки: `APP_ENV=production`, `DEBUG=false`, база `cafe_pos_production` у `DATABASE_URL` і окремий `SECRET_KEY`. Ключ можна згенерувати так:
+
+```bash
+python -c "import secrets; print(secrets.token_hex(32))"
+```
+
+Таблиці в базах створюються автоматично при першому запуску застосунку.
+
+### Запуск у sandbox
+
+```bash
+PYTHONPATH=src uvicorn cafe_pos.main:app --reload
+```
+
+- Swagger: http://127.0.0.1:8000/docs
+- Фронтенд: http://127.0.0.1:8000/app/index.html
+
+Створити адміністратора:
+
+```bash
+PYTHONPATH=src python -m cafe_pos.create_admin <email> <пароль>
+```
+
+Заповнити базу демо-даними (повторний запуск нічого не дублює):
+
+```bash
+PYTHONPATH=src python -m cafe_pos.seed_demo_data
+```
+
+### Запуск у production
+
+```bash
+APP_ENV=production PYTHONPATH=src uvicorn cafe_pos.main:app --port 8001
+```
+
+- Фронтенд: http://127.0.0.1:8001/app/index.html
+- Swagger у production вимкнений, `/docs` повертає 404.
+- Автоперезапуск (`--reload`) не використовується.
+- Адміністратора для production створюємо окремо, бо база порожня:
+
+```bash
+APP_ENV=production PYTHONPATH=src python -m cafe_pos.create_admin <email> <пароль>
+```
+
+- Демо-дані в production заборонені: скрипт `seed_demo_data` у цьому середовищі завершується з повідомленням про заборону.
+
+Sandbox (порт 8000) і production (порт 8001) можна запускати одночасно, вони працюють із різними базами.
+
+### Запуск тестів
+
+```bash
+PYTHONPATH=src pytest -v
+```
+
+Тести працюють на SQLite у пам'яті й не потребують ні PostgreSQL, ні файлів `.env`.
+
+### Перевірка якості коду
+
+Перед кожним комітом `pre-commit` запускає `ruff` і `ruff-format`. Перевірити всі файли вручну:
+
+```bash
+pre-commit run --all-files
+```
 
 ## Користувачі, ролі, розмежування доступу
 
@@ -105,7 +221,12 @@ graph TD
 - звичайний користувач на адмін-маршруті → 403 Forbidden (вертикальне розмежування);
 - користувач намагається змінити чужий профіль → 403 Forbidden (горизонтальне розмежування, IDOR).
 
+Режими безпеки перевіряють тести в `tests/test_security.py`:
+- помилка 500 не показує користувачу стектрейс і внутрішні деталі, а повне повідомлення потрапляє в лог;
+- при `DEBUG=false` документація (`/docs`, `/redoc`, `/openapi.json`) недоступна;
+- перевірка стану бази (`/health/db`) не розкриває текст помилки.
+
 Запуск тестів:
 ```bash
-pytest -v
+PYTHONPATH=src pytest -v
 ```
